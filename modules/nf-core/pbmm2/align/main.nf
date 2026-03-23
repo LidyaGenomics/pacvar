@@ -19,31 +19,36 @@ process PBMM2_ALIGN {
     when:
     task.ext.when == null || task.ext.when
 
-    script:
+    shell:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
 
-    """
+    '''
     # pbmm2 doesn't support .fna extension, so rename to .fa
-    if [[ ${fasta} == *.fna ]]; then
-        ln -s \$(readlink -f ${fasta}) \${${fasta}‰.fna}.fa
-    elif [[ ${fasta} == *.fna.gz ]]; then
-        ln -s \$(readlink -f ${fasta}) \${${fasta}‰.fna.gz}.fa.gz
+    REF="!{fasta}"
+    if [[ "${REF}" == *.fna ]]; then
+        FA_REF="${REF%.fna}.fa"
+        ln -s $(readlink -f "${REF}") "${FA_REF}"
+        REF="${FA_REF}"
+    elif [[ "${REF}" == *.fna.gz ]]; then
+        FA_REF="${REF%.fna.gz}.fa.gz"
+        ln -s $(readlink -f "${REF}") "${FA_REF}"
+        REF="${FA_REF}"
     fi
 
-    pbmm2 \\
-        align \\
-        $args \\
-        $fasta \\
-        $bam \\
-        ${prefix}.bam \\
-        --num-threads ${task.cpus}
+    pbmm2 \
+        align \
+        !{args} \
+        "${REF}" \
+        !{bam} \
+        !{prefix}.bam \
+        --num-threads !{task.cpus}
 
     cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        pbmm2: \$(pbmm2 --version |& sed '1!d ; s/pbmm2 //')
+    "!{task.process}":
+        pbmm2: $(pbmm2 --version |& sed '1!d ; s/pbmm2 //')
     END_VERSIONS
-    """
+    '''
 
     stub:
     def args = task.ext.args ?: ''
