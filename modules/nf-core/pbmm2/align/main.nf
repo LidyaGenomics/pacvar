@@ -19,36 +19,31 @@ process PBMM2_ALIGN {
     when:
     task.ext.when == null || task.ext.when
 
-    shell:
+    script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
+    // pbmm2 doesn't support .fna extension — compute the .fa name in Groovy
+    def fasta_name = fasta.name
+    def fa_ref = fasta_name.endsWith('.fna.gz') ? fasta_name[0..-8] + '.fa.gz' :
+                 fasta_name.endsWith('.fna')    ? fasta_name[0..-5] + '.fa'    : fasta_name
+    def needs_rename = fa_ref != fasta_name
 
-    '''
-    # pbmm2 doesn't support .fna extension, so rename to .fa
-    REF="!{fasta}"
-    if [[ "${REF}" == *.fna ]]; then
-        FA_REF="${REF%.fna}.fa"
-        ln -s $(readlink -f "${REF}") "${FA_REF}"
-        REF="${FA_REF}"
-    elif [[ "${REF}" == *.fna.gz ]]; then
-        FA_REF="${REF%.fna.gz}.fa.gz"
-        ln -s $(readlink -f "${REF}") "${FA_REF}"
-        REF="${FA_REF}"
-    fi
+    """
+    ${needs_rename ? "ln -s \$(readlink -f ${fasta_name}) ${fa_ref}" : ''}
 
-    pbmm2 \
-        align \
-        !{args} \
-        "${REF}" \
-        !{bam} \
-        !{prefix}.bam \
-        --num-threads !{task.cpus}
+    pbmm2 \\
+        align \\
+        $args \\
+        $fa_ref \\
+        $bam \\
+        ${prefix}.bam \\
+        --num-threads ${task.cpus}
 
     cat <<-END_VERSIONS > versions.yml
-    "!{task.process}":
-        pbmm2: $(pbmm2 --version |& sed '1!d ; s/pbmm2 //')
+    "${task.process}":
+        pbmm2: \$(pbmm2 --version |& sed '1!d ; s/pbmm2 //')
     END_VERSIONS
-    '''
+    """
 
     stub:
     def args = task.ext.args ?: ''
