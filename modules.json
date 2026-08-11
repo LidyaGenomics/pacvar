@@ -15,6 +15,11 @@
                         "git_sha": "666652151335353eef2fcd58880bcef5bc2928e1",
                         "installed_by": ["modules"]
                     },
+                    "bcftools/stats": {
+                        "branch": "master",
+                        "git_sha": "666652151335353eef2fcd58880bcef5bc2928e1",
+                        "installed_by": ["modules"]
+                    },
                     "bcftools/view": {
                         "branch": "master",
                         "git_sha": "666652151335353eef2fcd58880bcef5bc2928e1",
@@ -72,6 +77,11 @@
                         "git_sha": "666652151335353eef2fcd58880bcef5bc2928e1",
                         "installed_by": ["modules"]
                     },
+                    "mosdepth": {
+                        "branch": "master",
+                        "git_sha": "666652151335353eef2fcd58880bcef5bc2928e1",
+                        "installed_by": ["modules"]
+                    },
                     "multiqc": {
                         "branch": "master",
                         "git_sha": "f0719ae309075ae4a291533883847c3f7c441dad",
@@ -93,6 +103,11 @@
                         "git_sha": "6c32d3749967fb03fc83ae5e7ea72ecf26b90f56",
                         "installed_by": ["modules"]
                     },
+                    "samtools/flagstat": {
+                        "branch": "master",
+                        "git_sha": "b13f07be4c508d6ff6312d354d09f2493243e208",
+                        "installed_by": ["modules"]
+                    },
                     "samtools/index": {
                         "branch": "master",
                         "git_sha": "b13f07be4c508d6ff6312d354d09f2493243e208",
@@ -104,6 +119,11 @@
                         "git_sha": "b7800db9b069ed505db3f9d91b8c72faea9be17b",
                         "installed_by": ["modules"],
                         "patch": "modules/nf-core/samtools/sort/samtools-sort.diff"
+                    },
+                    "samtools/stats": {
+                        "branch": "master",
+                        "git_sha": "b7800db9b069ed505db3f9d91b8c72faea9be17b",
+                        "installed_by": ["modules"]
                     },
                     "tabix/bgzip": {
                         "branch": "master",

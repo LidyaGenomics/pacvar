@@ -35,6 +35,10 @@ include { GATK4_HAPLOTYPECALLER                                 } from '../modul
 include { PBMM2_ALIGN                                           } from '../modules/nf-core/pbmm2/align/main'
 include { HIPHASE as HIPHASE_SNP                                } from '../modules/nf-core/hiphase/main'
 include { HIPHASE as HIPHASE_SV                                 } from '../modules/nf-core/hiphase/main'
+include { SAMTOOLS_STATS                                        } from '../modules/nf-core/samtools/stats/main'
+include { SAMTOOLS_FLAGSTAT                                     } from '../modules/nf-core/samtools/flagstat/main'
+include { MOSDEPTH                                              } from '../modules/nf-core/mosdepth/main'
+include { BCFTOOLS_STATS                                        } from '../modules/nf-core/bcftools/stats/main'
 
 
 /*
@@ -58,6 +62,7 @@ workflow PACVAR {
 
     main:
     ch_versions = Channel.empty()
+    ch_multiqc_files = Channel.empty()
 
     // demultiplex
     if (!params.skip_demultiplexing) {
@@ -101,6 +106,29 @@ workflow PACVAR {
     ordered_bam_ch = bam_bai_ch.map { meta, bam, bai -> [meta, bam] }
     ordered_bai_ch = bam_bai_ch.map { meta, bam, bai -> [meta, bai] }
 
+    //
+    // QC: feed FastQC (reads) + samtools stats/flagstat + mosdepth (aligned BAM)
+    // into MultiQC so the PacBio report has real coverage/alignment/read metrics.
+    //
+    FASTQC(pbmm2_input_ch)
+    ch_versions = ch_versions.mix(FASTQC.out.versions)
+    ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect { it[1] })
+
+    SAMTOOLS_STATS(bam_bai_ch, fasta)
+    ch_versions = ch_versions.mix(SAMTOOLS_STATS.out.versions)
+    ch_multiqc_files = ch_multiqc_files.mix(SAMTOOLS_STATS.out.stats.collect { it[1] })
+
+    SAMTOOLS_FLAGSTAT(bam_bai_ch)
+    ch_versions = ch_versions.mix(SAMTOOLS_FLAGSTAT.out.versions)
+    ch_multiqc_files = ch_multiqc_files.mix(SAMTOOLS_FLAGSTAT.out.flagstat.collect { it[1] })
+
+    // mosdepth for coverage distribution / per-contig coverage. No capture BED
+    // (PacBio is WGS); ext.args '-n -x' skips per-base output for speed.
+    MOSDEPTH(bam_bai_ch.map { meta, bam, bai -> [meta, bam, bai, []] }, fasta)
+    ch_versions = ch_versions.mix(MOSDEPTH.out.versions)
+    ch_multiqc_files = ch_multiqc_files.mix(MOSDEPTH.out.global_txt.collect { it[1] })
+    ch_multiqc_files = ch_multiqc_files.mix(MOSDEPTH.out.summary_txt.collect { it[1] })
+
     //if whole genome sequencing call CNV and SV call the WGS workflow + phase
     if (params.workflow == 'wgs') {
 
@@ -116,6 +144,12 @@ workflow PACVAR {
                 intervals)
 
             ch_versions = ch_versions.mix(BAM_SNP_VARIANT_CALLING.out.versions)
+
+            // variant-level QC (counts, Ts/Tv, quality) into MultiQC
+            BCFTOOLS_STATS(BAM_SNP_VARIANT_CALLING.out.vcf_ch,
+                [[], []], [[], []], [[], []], [[], []], [[], []])
+            ch_versions = ch_versions.mix(BCFTOOLS_STATS.out.versions)
+            ch_multiqc_files = ch_multiqc_files.mix(BCFTOOLS_STATS.out.stats.collect { it[1] })
 
             //join the bam and bai and vcf based off the meta id (ensure correct order)
             bam_bai_vcf_snp_ch = bam_bai_ch.join(BAM_SNP_VARIANT_CALLING.out.vcf_ch)
@@ -180,7 +214,9 @@ workflow PACVAR {
     }
 
     // MODULE: MultiQC
-    ch_multiqc_files = Channel.empty()
+    // NOTE: ch_multiqc_files is initialised at the top of the workflow and
+    // already carries the FastQC / samtools / mosdepth / bcftools QC outputs.
+    // Do NOT reset it here or those reports are dropped.
 
     //
     // Collate and save software versions
