@@ -38,6 +38,7 @@ IMAGES=(
     "quay.io/biocontainers/gatk4:4.5.0.0--py36hdfd78af_0"
     "quay.io/biocontainers/multiqc:1.27--pyhdfd78af_0"
     "quay.io/biocontainers/fastqc:0.12.1--hdfd78af_0"
+    "quay.io/biocontainers/mosdepth:0.3.8--hd299d5a_0"
     "quay.io/nf-core/ubuntu:22.04"
 )
 
